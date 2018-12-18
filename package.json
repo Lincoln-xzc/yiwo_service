@@ -1,0 +1,31 @@
+{
+  "name": "yiwo",
+  "version": "1.0.0",
+  "description": "base nodejs koa2 project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Lincoln-xzc/yiwo_service.git"
+  },
+  "keywords": [
+    "nodej",
+    "koa2"
+  ],
+  "author": "lincoln-xzc",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lincoln-xzc/yiwo_service/issues"
+  },
+  "homepage": "https://github.com/Lincoln-xzc/yiwo_service#readme",
+  "dependencies": {
+    "koa": "^2.6.2",
+    "koa-bodyparser": "^4.2.1",
+    "koa-logger": "^3.2.0",
+    "koa-router": "^7.4.0",
+    "mysql": "^2.16.0",
+    "validator": "^10.9.0"
+  }
+}
