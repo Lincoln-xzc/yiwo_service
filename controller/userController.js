@@ -48,22 +48,23 @@ module.exports = {
      * @param   {obejct} ctx 上下文对象
      */
     async signUp( ctx ) {
+        console.log(ctx);
         let formData = ctx.request.body
         let result = {
-        success: false,
-        message: '',
-        data: null
+            success: false,
+            message: '',
+            data: null
         };
 
-        let validateResult = userInfoService.validatorSignUp( formData );
+        let validateResult = userService.validateSignUp( formData );
 
         if ( validateResult.success === false ) {
-        result = validateResult;
-        ctx.body = result;
-        return;
+            result = validateResult;
+            ctx.body = result;
+            return;
         }
 
-        let existOne  = await userInfoService.getExistOne(formData);
+        let existOne  = await userService.getExistOne(formData);
         console.log( existOne );
 
         if ( existOne  ) {
@@ -80,7 +81,7 @@ module.exports = {
         }
 
 
-        let userResult = await userInfoService.create({
+        let userResult = await userService.create({
             email: formData.email,
             password: formData.password,
             name: formData.userName,
@@ -149,14 +150,13 @@ module.exports = {
         }
         return result;
     },
-    async test(ctx){
-        console.log(ctx);
-        let formData = ctx.request.body;
+    validateSignUp(formData){
         let result = {
             success: true,
-            message: '测试成功',
-            data: formData
+            message: userCode.ERROR_USER_NAME,
+            data: null,
+            code: 'ERROR_USER_NAME'
         };
-        ctx.body = result;
+        return result;
     }
 }

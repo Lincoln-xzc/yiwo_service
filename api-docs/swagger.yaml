@@ -1,0 +1,108 @@
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: YIWO API
+  description: 这是用一窝服务端的API接口文档，主要提供给易窝后端管理系统，前端，小程序等应用API
+schemes:
+  - https
+  - http
+host: localhost:3000
+basePath: /
+
+paths:
+  /api/user/getUserInfo:
+    get:
+      summary: 获取用户信息
+      description: ''
+      responses:
+        200:
+          description: ''
+          schema:
+            type: object
+            properties:
+              name: 
+                type: string
+              phone:
+                type: integer
+                format: int64
+              email:
+                type: string
+              sex:
+                type: boolean
+                default: 0
+              avatar:
+                type: string
+        401:
+          description: invalid author
+        403:
+          description: request permission deined         
+  /api/user/signIn:
+    post:
+      summary: 登录验证
+      description: ''
+      parameters:
+        - in: body
+          name: body
+          description: 请输入用户名密码
+          required: true
+          schema:
+            required:
+              - name
+              - password
+            properties:
+              name:
+                type: string
+              password:
+                type: string  
+      responses:
+        200:
+          description: ''
+          schema:
+            type: object
+            properties:
+              name: 
+                token: string
+        401:
+          description: invalid author
+        403:
+          description: request permission deined
+  /api/user/signUp:
+    post:
+      summary: 注册验证
+      description: ''
+      parameters:
+        - in: body
+          name: body
+          description: 请输入用户信息
+          required: true
+          schema:
+            required:
+              - name
+              - password
+            properties:
+              name:
+                type: string
+              password:
+                type: string 
+              email:
+                type: string
+              phone:
+                type: integer
+                format: int64
+      responses:
+        200:
+          description: ''
+          schema:
+            type: object
+            properties:
+              name: 
+                token: string
+        401:
+          description: invalid author
+        403:
+          description: request permission deined  
+
+
+
+                
