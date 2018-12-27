@@ -37,8 +37,17 @@ let findDataById = (table, id)=>{
     return query(_sql, [table, id, start, end]);
 }
 
-let findDataByPage = (table, keys, start, end)=>{
-    let _sql = "SELECT ?? FROM ?? LIMIT ?, ?";
+let findDataByPage = (table, keys, query, sort, start, end)=>{
+    let _sql = "SELECT ?? FROM ??";
+    if(query){
+        for(let key in query){
+            _sql += `where  ${key}= '${query[key]}'`;
+        }
+    }
+    if(sort){
+        _sql += ` order by ${sort}`;
+    }
+    _sql += " LIMIT ?, ?";
     return query(_sql, [keys, table, start, end]);
 }
 

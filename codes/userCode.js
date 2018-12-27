@@ -7,6 +7,8 @@ const userCode = {
     ERROR_USER_NAME: '用户名格式为6-16位的小写字母，包括-、_',
   
     ERROR_EMAIL: '请输入正确的邮箱地址',
+
+    ERROR_MOBILE: '请输入正确的手机号码',
   
     ERROR_PASSWORD: '密码长度应该为6-16',
   
@@ -22,7 +24,11 @@ const userCode = {
   
     FAIL_USER_NO_LOGIN: '用户未登录',
   
-    FAIL_USER_NO_EXIST: '用户不存在'
+    FAIL_USER_NO_EXIST: '用户不存在',
+
+    SUCCESS_LOGIN: '登录成功',
+
+    SUCCESS_REGISTER: '注册成功'
   
   }
   

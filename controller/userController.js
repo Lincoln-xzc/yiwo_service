@@ -1,6 +1,10 @@
 const userService = require('../services/user');
 const userCode = require('../codes/userCode');
-
+const validator = require('../utils/validate');
+const statusCode = require('../codes/statusCode');
+const jsonwebtoken = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const secret = 'jwt_secret';
 module.exports = {
 
     /**
@@ -15,32 +19,36 @@ module.exports = {
             data: null,
             code: ''
         };
+        try{
+            let userResult = await userService.signIn( formData );
 
-        let userResult = await userInfoService.signIn( formData );
-
-        if ( userResult ) {
-        if ( formData.userName === userResult.name ) {
-            result.success = true;
-        } else {
-            result.message = userCode.FAIL_USER_NAME_OR_PASSWORD_ERROR;
-            result.code = 'FAIL_USER_NAME_OR_PASSWORD_ERROR';
+            if ( userResult ) {
+                if(await bcrypt.compare(formData.password, userResult.password)){
+                    result.code = statusCode.SUCCESS_CODE;
+                    result.data = {
+                        token: jsonwebtoken.sign({
+                            data: userResult,
+                            exp: Math.floor(Date.now() /1000) + (60*60)
+                        }, secret)
+                    };
+                    result.message = userCode.SUCCESS_LOGIN;
+                    result.success= true;
+                } else {
+                    result.message = userCode.FAIL_USER_NAME_OR_PASSWORD_ERROR;
+                    result.code = statusCode.VALIDATE_ERROR_CODE;
+                    return;
+                }
+            } else {
+                result.code = statusCode.VALIDATE_ERROR_CODE;
+                result.message = userCode.FAIL_USER_NO_EXIST;
+            }
+            // let session = ctx.session;
+            // session.isLogin = true;
+            ctx.body = result;
+        }catch(error){
+            console.log(error);
+            ctx.throw(500);
         }
-        } else {
-            result.code = 'FAIL_USER_NO_EXIST';
-            result.message = userCode.FAIL_USER_NO_EXIST;
-        }
-
-        // if ( formData.source === 'form' && result.success === true ) {
-        // let session = ctx.session
-        // session.isLogin = true
-        // session.userName = userResult.name
-        // session.userId = userResult.id
-
-        // ctx.redirect('/work')
-        // } else {
-        
-        // }
-        ctx.body = result;
   },
 
     /**
@@ -48,14 +56,14 @@ module.exports = {
      * @param   {obejct} ctx 上下文对象
      */
     async signUp( ctx ) {
-        console.log(ctx);
         let formData = ctx.request.body
         let result = {
             success: false,
             message: '',
-            data: null
+            data: null,
+            code: statusCode.VALIDATE_ERROR_CODE
         };
-
+        console.log(formData);
         let validateResult = userService.validateSignUp( formData );
 
         if ( validateResult.success === false ) {
@@ -68,36 +76,43 @@ module.exports = {
         console.log( existOne );
 
         if ( existOne  ) {
-            if ( existOne .name === formData.userName ) {
+            if ( existOne.name === formData.name ) {
                 result.message = userCode.FAIL_USER_NAME_IS_EXIST;
+                result.code = statusCode.VALIDATE_ERROR_CODE;
                 ctx.body = result;
                 return;
             }
-            if ( existOne .email === formData.email ) {
+            if ( existOne.email === formData.email ) {
                 result.message = userCode.FAIL_EMAIL_IS_EXIST;
+                result.code = statusCode.VALIDATE_ERROR_CODE;
                 ctx.body = result;
                 return;
             }
         }
 
-
-        let userResult = await userService.create({
-            email: formData.email,
-            password: formData.password,
-            name: formData.userName,
-            create_time: new Date().getTime(),
-            level: 1,
+        const saltRounds = 10;
+        bcrypt.genSalt(saltRounds, async (err, salt)=>{
+            bcrypt.hash(formData.password, salt, async (err, hash)=>{
+                let userResult = await userService.create({
+                    email: formData.email || '',
+                    password: hash,
+                    name: formData.name,
+                    mobile: formData.mobile || '',
+                    sex: 0,
+                    create_time: new Date().getTime()
+                });
+                if ( userResult && userResult.insertId * 1 > 0) {
+                    result.success = true;
+                    result.message = userCode.SUCCESS_REGISTER;
+                    result.code = statusCode.SUCCESS_CODE;
+                } else {
+                    result.success = false;
+                    result.message = userCode.ERROR_SYS;
+                    result.code = statusCode.VALIDATE_ERROR_CODE;
+                }
+                ctx.body = result;
+            })
         });
-
-        console.log( userResult );
-
-        if ( userResult && userResult.insertId * 1 > 0) {
-            result.success = true;
-        } else {
-            result.message = userCode.ERROR_SYS;
-        }
-
-        ctx.body = result;
     },
 
     /**
@@ -105,58 +120,48 @@ module.exports = {
      * @param    {obejct} ctx 上下文对象
      */
     async getLoginUserInfo( ctx ) {
-        let session = ctx.session;
-        let isLogin = session.isLogin;
-        let userName = session.userName;
-
-        console.log( 'session=', session )
+        const currentUser = ctx.state.user;
 
         let result = {
-            success: false,
+            success: true,
             message: '',
             data: null,
         };
-        if ( isLogin === true && userName ) {
-            let userInfo = await userInfoService.getUserInfoByUserName( userName );
-        if ( userInfo ) {
-            result.data = userInfo;
-            result.success = true;
-        } else {
-            result.message = userCode.FAIL_USER_NO_LOGIN;
-        }
+        if ( currentUser ) {
+            let userInfo = await userService.getUserById( currentUser.id );
+            if ( userInfo ) {
+                result.data = userInfo;
+                result.success = true;
+                result.code = statusCode.SUCCESS_CODE;
+            } else {
+                result.message = userCode.FAIL_USER_NO_LOGIN;
+                result.code = statusCode.NO_ACCESS_CODE;
+                result.success = true;
+            }
         } else {
         // TODO
+            result.code = statusCode.NO_ACCESS_CODE;
+            result.message = "未登录";
         }
 
         ctx.body = result;
     },
 
-    /**
-     * 校验用户是否登录
-     * @param  {obejct} ctx 上下文对象
-     */
-    validateLogin( ctx ) {
-        let result = {
+    async getUsers(ctx){
+        let options = ctx.request.query;
+        let resultData = await userService.getUserByPage(options);
+        return result = {
             success: false,
-            message: userCode.FAIL_USER_NO_LOGIN,
-            data: null,
-            code: 'FAIL_USER_NO_LOGIN',
-        } 
-        let session = ctx.session;
-        if( session && session.isLogin === true  ) {
-            result.success = true;
-            result.message = '';
-            result.code = '';
-        }
-        return result;
-    },
-    validateSignUp(formData){
-        let result = {
-            success: true,
-            message: userCode.ERROR_USER_NAME,
-            data: null,
-            code: 'ERROR_USER_NAME'
+            message: '',
+            data: {
+                users: resultData.users,
+                pages: {
+                    current_page: options.current_page,
+                    per_page: options.per_page,
+                    count: resultData.count
+                }
+            },
+            code: statusCode.SUCCESS_CODE
         };
-        return result;
-    }
+    } 
 }

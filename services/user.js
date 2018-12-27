@@ -1,6 +1,8 @@
 const validator = require('validator');
 const userModel = require('../models/user');
 const userCode = require('../codes/userCode');
+const validate = require('../utils/validate');
+const statusCode = require('../codes/statusCode');
 
 const user = {
     /**
@@ -23,7 +25,7 @@ const user = {
     async getExistOne(formData){
         let result = await userModel.getExistOne({
             'email': formData.email,
-            'name': formData.userName
+            'name': formData.name
         });
         return result;
     },
@@ -35,9 +37,8 @@ const user = {
      * @returns {object}
      */
     async signIn(formData){
-        let result = await userModel.getUserByUserNameAndPassword({
-            'password': formData.password,
-            'name': formData.userName
+        let result = await userModel.getExistOne({
+            'name': formData.name
         });
         return result;
     },
@@ -59,36 +60,67 @@ const user = {
         return userInfo;
     },
 
+    async getUserById(id){
+        return await userModel.getUserById(id) || {};
+    },
+
     /**
-     * 检验用户注册数据
-     * @param  {object} userInfo 用户注册数据
-     * @return {object}          校验结果
+     * 校验用户是否登录
+     * @param  {obejct} ctx 上下文对象
      */
-    validatorSignUp( userInfo ) {
+    validateLogin( ctx ) {
         let result = {
-        success: false,
-        message: '',
+            success: false,
+            message: userCode.FAIL_USER_NO_LOGIN,
+            data: null,
+            code: 'FAIL_USER_NO_LOGIN',
+        } 
+        let session = ctx.session;
+        if( session && session.isLogin === true  ) {
+            result.success = true;
+            result.message = '';
+            result.code = '';
         }
-
-        if ( /[a-z0-9\_\-]{6,16}/.test(userInfo.userName) === false ) {
-        result.message = userCode.ERROR_USER_NAME;
         return result;
+    },
+    validateSignUp(formData){
+        let result = {
+            success: false,
+            message: userCode.ERROR_USER_NAME,
+            data: null,
+            code: statusCode.VALIDATE_ERROR_CODE
+        };
+        if(formData.name){
+            if(!validate.validateUserName(formData.name)){
+                result.message = userCode.ERROR_USER_NAME;
+            }
         }
-        if ( !validator.isEmail( userInfo.email ) ) {
-        result.message = userCode.ERROR_EMAIL;
-        return result;
+        // if(formData.password){
+        //     if(!validate.validatePassword(formData.password)){
+        //         result.message = userCode.ERROR_PASSWORD;
+        //     }
+        // }
+        if(formData.password != formData.rePassword){
+            result.message = userCode.ERROR_PASSWORD_CONFORM;
         }
-        if ( !/[\w+]{6,16}/.test( userInfo.password )  ) {
-        result.message = userCode.ERROR_PASSWORD;
-        return result;
+        if(formData.mobile){
+            if(!validate.validateMobile(formData.mobile)){
+                result.message = userCode.ERROR_MOBILE;
+            }
         }
-        if ( userInfo.password !== userInfo.confirmPassword ) {
-        result.message = userCode.ERROR_PASSWORD_CONFORM;
-        return result
+        if(formData.email){
+            if(!validate.validateEmail(formData.email)){
+                result.email = userCode.ERROR_EMAIL;
+            }
         }
-
         result.success = true;
-
+        result.message = '';
+        result.code = statusCode.SUCCESS_CODE;
         return result;
-  }
+    },
+
+    async getUserByPage(query){
+        return await userModel.getUserByPage(query);
+    }
 }
+module.exports = user;
